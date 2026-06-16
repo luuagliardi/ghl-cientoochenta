@@ -32,7 +32,7 @@ input:focus{border-color:#6366f1}
 .period-custom input[type="date"]{padding:3px 8px;font-size:11px}
 .period-label{font-size:11px;color:#888;margin-left:4px}
 .pipeline-chips-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.pipeline-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid #ddd;border-radius:20px;font-size:11px;cursor:pointer;background:#fff;color:#555;transition:all .15s;user-select:none}
+.pipeline-chip{display:inline-flex;align-items:center;padding:4px 10px;border:1px solid #ddd;border-radius:20px;font-size:11px;cursor:pointer;background:#fff;color:#555;transition:all .15s;user-select:none}
 .pipeline-chip.active{background:#ede9fe;border-color:#8b5cf6;color:#5b21b6;font-weight:500}
 .table-wrap{background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:auto;margin-bottom:10px}
 table{width:100%;border-collapse:collapse;min-width:750px}
@@ -72,7 +72,7 @@ tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
     <span id="statusArea" class="status-text">Modo demo activo</span>
-    <button class="btn btn-primary" onclick="loadData()">↻ Actualizar</button>
+    <button class="btn btn-primary" onclick="loadData()">&#x21BB; Actualizar</button>
   </div>
 </div>
 
@@ -90,7 +90,7 @@ tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
     <button class="btn btn-primary" onclick="connectAndLoad()">Conectar y cargar pipelines</button>
     <button class="btn" onclick="loadDemoData()" style="font-size:11px;color:#888;">Usar datos demo</button>
   </div>
-  <div class="help-text">API Key: GHL → Settings → API Keys → <strong>Private</strong> API Key. Location ID: app.gohighlevel.com/location/<strong>ESTE_ID</strong>/dashboard</div>
+  <div class="help-text">API Key: GHL &rarr; Settings &rarr; API Keys &rarr; <strong>Private</strong> API Key. Location ID: app.gohighlevel.com/location/<strong>ESTE_ID</strong>/dashboard</div>
 </div>
 
 <div id="errorBanner" class="error-banner"></div>
@@ -104,7 +104,7 @@ tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
   <button class="period-btn" onclick="setPeriod('custom')" id="btn-custom">Personalizado</button>
   <div class="period-custom" id="customDates">
     <input type="date" id="dateFrom" />
-    <span style="font-size:11px;color:#aaa;">→</span>
+    <span style="font-size:11px;color:#aaa;">&rarr;</span>
     <input type="date" id="dateTo" />
     <button class="btn" onclick="applyCustomDates()" style="padding:3px 10px;font-size:11px;">Aplicar</button>
   </div>
@@ -124,7 +124,7 @@ tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
         <th class="num">Inversión mes<br><span style="font-weight:400;color:#bbb;font-size:10px;text-transform:none;">editable · se prorratea</span></th>
         <th class="num">Entrada</th>
         <th class="num">Propuesta enviada</th>
-        <th class="num" style="color:#15803d;">Cierre ✓</th>
+        <th class="num" style="color:#15803d;">Cierre &#10003;</th>
         <th class="num" style="color:#b91c1c;">Perdido</th>
         <th class="num" style="color:#b45309;">Abandonado</th>
         <th class="num" style="color:#0369a1;">CPL</th>
@@ -149,52 +149,36 @@ tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
     </tfoot>
   </table>
 </div>
-<div class="footer-note">💡 CPL = Inversión período ÷ Entrada &nbsp;·&nbsp; CAC = Inversión período ÷ Cierre &nbsp;·&nbsp; La inversión mensual se prorratea al período seleccionado</div>
+<div class="footer-note">CPL = Inversión período / Entrada &nbsp;&middot;&nbsp; CAC = Inversión período / Cierre &nbsp;&middot;&nbsp; Inversión mensual se prorratea al período</div>
 
 <script>
-// ── Mapeo de etapas ──────────────────────────────────────
-// Etapas que cuentan como ENTRADA (primeros contactos)
-const ETAPAS_ENTRADA = [
-  'nuevo contacto','no responde','nuevo','lead','ingreso','sin contacto','nuevo lead'
-];
-// Etapas que cuentan como PROPUESTA ENVIADA
-const ETAPAS_PROPUESTA = [
-  'propuesta realizada','propuesta enviada','contrato enviado','cotizacion enviada',
-  'cotización enviada','oferta enviada','presupuesto enviado','quote sent'
-];
-// Etapas intermedias (se cuentan en Entrada por ahora — en el medio del funnel)
-// Interesado, Diagnóstico realizado, Agendó Reunión propuesta, Seguimiento → van a Entrada
+// Etapas de propuesta (todo lo demás = Entrada)
+var ETAPAS_PROPUESTA = ['propuesta realizada','propuesta enviada','contrato enviado','cotizacion enviada','cotizacion','oferta enviada','presupuesto enviado','quote'];
 
 function clasificarEtapa(stageName, status) {
-  const s = (status || '').toLowerCase();
-  const e = (stageName || '').toLowerCase();
-
-  if (s === 'won')       return 'cierre';
-  if (s === 'lost')      return 'perdido';
+  var s = (status || '').toLowerCase();
+  var e = (stageName || '').toLowerCase();
+  if (s === 'won') return 'cierre';
+  if (s === 'lost') return 'perdido';
   if (s === 'abandoned') return 'abandonado';
-
-  for (const kw of ETAPAS_PROPUESTA) {
-    if (e.includes(kw)) return 'propuesta';
+  for (var i = 0; i < ETAPAS_PROPUESTA.length; i++) {
+    if (e.indexOf(ETAPAS_PROPUESTA[i]) !== -1) return 'propuesta';
   }
-  // Todo lo demás (Entrada, Interesado, Diagnóstico, Agendó, Seguimiento, etc.) → Entrada
   return 'entrada';
 }
 
-// ── Proxies CORS en cascada ──────────────────────────────
-const PROXIES = [
-  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-  u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+// Proxies CORS
+var PROXIES = [
+  function(u){ return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); },
+  function(u){ return 'https://corsproxy.io/?' + encodeURIComponent(u); },
+  function(u){ return 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u); }
 ];
 
 async function ghlFetch(url, headers) {
-  let lastErr;
-  for (const fn of PROXIES) {
+  var lastErr;
+  for (var i = 0; i < PROXIES.length; i++) {
     try {
-      const res = await fetch(fn(url), {
-        headers,
-        signal: AbortSignal.timeout(12000)
-      });
+      var res = await fetch(PROXIES[i](url), { headers: headers, signal: AbortSignal.timeout(12000) });
       if (res.ok) return res;
       if (res.status === 401 || res.status === 403) throw new Error('auth');
     } catch(e) {
@@ -205,20 +189,19 @@ async function ghlFetch(url, headers) {
   throw new Error('fetch_failed');
 }
 
-// ── Estado global ────────────────────────────────────────
-let pipelinesData = [];
-let activePipelineIds = new Set();
-let savedInversions = {};
-let currentPeriod = 'month';
-let customFrom = null, customTo = null;
+// Estado
+var pipelinesData = [];
+var activePipelineIds = new Set();
+var savedInversions = {};
+var currentPeriod = 'month';
+var customFrom = null, customTo = null;
 
-// ── Persistencia local ───────────────────────────────────
 function loadSaved() {
   try {
-    const inv = localStorage.getItem('ghl_inv');
+    var inv = localStorage.getItem('ghl_inv');
     if (inv) savedInversions = JSON.parse(inv);
-    const key = localStorage.getItem('ghl_key');
-    const loc = localStorage.getItem('ghl_loc');
+    var key = localStorage.getItem('ghl_key');
+    var loc = localStorage.getItem('ghl_loc');
     if (key) document.getElementById('apiKey').value = key;
     if (loc) document.getElementById('locationId').value = loc;
   } catch(e) {}
@@ -228,63 +211,60 @@ function persistInversions() {
   try { localStorage.setItem('ghl_inv', JSON.stringify(savedInversions)); } catch(e) {}
 }
 
-// ── Cálculo de períodos ──────────────────────────────────
 function getPeriodDates(p) {
-  const now = new Date();
-  const y = now.getFullYear(), m = now.getMonth();
-  const dow = now.getDay();
-  const mon = new Date(now); mon.setDate(now.getDate() - ((dow + 6) % 7)); mon.setHours(0,0,0,0);
+  var now = new Date();
+  var y = now.getFullYear(), m = now.getMonth();
+  var dow = now.getDay();
+  var mon = new Date(now);
+  mon.setDate(now.getDate() - ((dow + 6) % 7));
+  mon.setHours(0,0,0,0);
 
   if (p === 'week') {
-    const sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23,59,59,999);
+    var sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23,59,59,999);
     return { from: mon, to: sun, days: 7, monthDays: new Date(y, m+1, 0).getDate() };
   }
   if (p === 'lastweek') {
-    const lm = new Date(mon); lm.setDate(mon.getDate() - 7);
-    const ls = new Date(lm); ls.setDate(lm.getDate() + 6); ls.setHours(23,59,59,999);
+    var lm = new Date(mon); lm.setDate(mon.getDate() - 7);
+    var ls = new Date(lm); ls.setDate(lm.getDate() + 6); ls.setHours(23,59,59,999);
     return { from: lm, to: ls, days: 7, monthDays: new Date(y, m+1, 0).getDate() };
   }
   if (p === 'lastmonth') {
-    const from = new Date(y, m-1, 1);
-    const to   = new Date(y, m, 0, 23, 59, 59, 999);
-    return { from, to, days: to.getDate(), monthDays: to.getDate() };
+    var from = new Date(y, m-1, 1);
+    var to = new Date(y, m, 0, 23, 59, 59, 999);
+    return { from: from, to: to, days: to.getDate(), monthDays: to.getDate() };
   }
   if (p === 'custom' && customFrom && customTo) {
-    const from = new Date(customFrom + 'T00:00:00');
-    const to   = new Date(customTo   + 'T23:59:59');
-    const days = Math.max(1, Math.round((to - from) / 86400000) + 1);
-    return { from, to, days, monthDays: new Date(y, m+1, 0).getDate() };
+    var from = new Date(customFrom + 'T00:00:00');
+    var to = new Date(customTo + 'T23:59:59');
+    var days = Math.max(1, Math.round((to - from) / 86400000) + 1);
+    return { from: from, to: to, days: days, monthDays: new Date(y, m+1, 0).getDate() };
   }
-  // month (default)
-  const from = new Date(y, m, 1);
-  const to   = new Date(y, m+1, 0, 23, 59, 59, 999);
-  return { from, to, days: to.getDate(), monthDays: to.getDate() };
+  // month default
+  var from = new Date(y, m, 1);
+  var to = new Date(y, m+1, 0, 23, 59, 59, 999);
+  return { from: from, to: to, days: to.getDate(), monthDays: to.getDate() };
 }
 
-function periodInversion(monthlyInv, days, monthDays) {
-  if (!monthlyInv) return 0;
-  if (days >= monthDays) return monthlyInv;
-  return (monthlyInv / monthDays) * days;
+function periodInversion(monthly, days, monthDays) {
+  if (!monthly) return 0;
+  if (days >= monthDays) return monthly;
+  return (monthly / monthDays) * days;
 }
 
 function fmtPeriodLabel(dates) {
-  const fmt = d => d.toLocaleDateString('es-AR', { day:'numeric', month:'short' });
-  return `${fmt(dates.from)} – ${fmt(dates.to)}`;
+  var fmt = function(d) { return d.toLocaleDateString('es-AR', { day:'numeric', month:'short' }); };
+  return fmt(dates.from) + ' – ' + fmt(dates.to);
 }
 
-// ── UI período ───────────────────────────────────────────
 function setPeriod(p) {
   currentPeriod = p;
-  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById('btn-' + p);
+  document.querySelectorAll('.period-btn').forEach(function(b){ b.classList.remove('active'); });
+  var btn = document.getElementById('btn-' + p);
   if (btn) btn.classList.add('active');
-  const custom = document.getElementById('customDates');
-  if (p === 'custom') {
-    custom.classList.add('visible');
-    return;
-  }
+  var custom = document.getElementById('customDates');
+  if (p === 'custom') { custom.classList.add('visible'); return; }
   custom.classList.remove('visible');
-  const dates = getPeriodDates(p);
+  var dates = getPeriodDates(p);
   document.getElementById('periodLabel').textContent = fmtPeriodLabel(dates);
   if (pipelinesData.length) loadData();
   else reRenderCalcs();
@@ -292,43 +272,41 @@ function setPeriod(p) {
 
 function applyCustomDates() {
   customFrom = document.getElementById('dateFrom').value;
-  customTo   = document.getElementById('dateTo').value;
+  customTo = document.getElementById('dateTo').value;
   if (!customFrom || !customTo) return;
-  const dates = getPeriodDates('custom');
+  var dates = getPeriodDates('custom');
   document.getElementById('periodLabel').textContent = fmtPeriodLabel(dates);
   if (pipelinesData.length) loadData();
   else reRenderCalcs();
 }
 
 function reRenderCalcs() {
-  document.querySelectorAll('tbody tr[data-id]').forEach(tr => updateRowCalcs(tr.dataset.id));
+  document.querySelectorAll('tbody tr[data-id]').forEach(function(tr){ updateRowCalcs(tr.dataset.id); });
   recalcAll();
 }
 
-// ── Formato ──────────────────────────────────────────────
 function fmtNum(n) { return Number(n).toLocaleString('es-AR', {minimumFractionDigits:0,maximumFractionDigits:0}); }
 function fmtCur(n) { return '$' + fmtNum(n); }
-function esc(s)    { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// ── Conexión ─────────────────────────────────────────────
 async function connectAndLoad() {
-  const apiKey    = document.getElementById('apiKey').value.trim();
-  const locationId = document.getElementById('locationId').value.trim();
+  var apiKey = document.getElementById('apiKey').value.trim();
+  var locationId = document.getElementById('locationId').value.trim();
   if (!apiKey || !locationId) { showError('Completá el API Key y el Location ID.'); return; }
   try { localStorage.setItem('ghl_key', apiKey); localStorage.setItem('ghl_loc', locationId); } catch(e) {}
 
   setStatus('Cargando pipelines...', false);
   document.getElementById('demoBadge').style.display = 'none';
 
-  const headers = { 'Authorization': `Bearer ${apiKey}`, 'Version': '2021-07-28', 'Accept': 'application/json' };
+  var headers = { 'Authorization': 'Bearer ' + apiKey, 'Version': '2021-07-28', 'Accept': 'application/json' };
   try {
-    const res  = await ghlFetch(`https://services.leadconnectorhq.com/opportunities/pipelines?locationId=${locationId}`, headers);
-    const data = await res.json();
-    const pls  = data.pipelines || [];
+    var res = await ghlFetch('https://services.leadconnectorhq.com/opportunities/pipelines?locationId=' + locationId, headers);
+    var data = await res.json();
+    var pls = data.pipelines || [];
     if (!pls.length) { showError('No se encontraron pipelines.'); setStatus('Sin datos', true); return; }
 
-    pipelinesData = pls.map(p => ({ id: p.id, name: p.name }));
-    activePipelineIds = new Set(pipelinesData.map(p => p.id));
+    pipelinesData = pls.map(function(p){ return { id: p.id, name: p.name }; });
+    activePipelineIds = new Set(pipelinesData.map(function(p){ return p.id; }));
     renderChips();
     await loadData();
   } catch(e) {
@@ -341,97 +319,100 @@ async function connectAndLoad() {
   }
 }
 
-// ── Carga de datos ───────────────────────────────────────
 async function loadData() {
   if (!pipelinesData.length) { loadDemoData(); return; }
 
-  const apiKey     = document.getElementById('apiKey').value.trim();
-  const locationId = document.getElementById('locationId').value.trim();
-  const { from, to } = getPeriodDates(currentPeriod);
-  const fromMs = from.getTime();
-  const toMs   = to.getTime();
+  var apiKey = document.getElementById('apiKey').value.trim();
+  var locationId = document.getElementById('locationId').value.trim();
+  var pd = getPeriodDates(currentPeriod);
+  var fromMs = pd.from.getTime();
+  var toMs = pd.to.getTime();
 
   setStatus('Cargando datos...', false);
   showTableLoading();
 
-  const headers = { 'Authorization': `Bearer ${apiKey}`, 'Version': '2021-07-28', 'Accept': 'application/json' };
-  const rows = [];
+  var headers = { 'Authorization': 'Bearer ' + apiKey, 'Version': '2021-07-28', 'Accept': 'application/json' };
+  var rows = [];
 
-  for (const pipeline of pipelinesData) {
+  for (var pi = 0; pi < pipelinesData.length; pi++) {
+    var pipeline = pipelinesData[pi];
     if (!activePipelineIds.has(pipeline.id)) continue;
-    const counts = { entrada:0, propuesta:0, cierre:0, perdido:0, abandonado:0 };
-    let startAfter = 0, hasMore = true, pageErrors = 0;
+
+    var counts = { entrada:0, propuesta:0, cierre:0, perdido:0, abandonado:0 };
+    var startAfter = 0;
+    var hasMore = true;
+    var pageErrors = 0;
 
     while (hasMore) {
       try {
-        const url = `https://services.leadconnectorhq.com/opportunities/search?location_id=${locationId}&pipeline_id=${pipeline.id}&limit=100&startAfter=${startAfter}`;
-        const res  = await ghlFetch(url, headers);
-        const data = await res.json();
-        const opps = data.opportunities || [];
+        var url = 'https://services.leadconnectorhq.com/opportunities/search?location_id=' + locationId + '&pipeline_id=' + pipeline.id + '&limit=100&startAfter=' + startAfter;
+        var res = await ghlFetch(url, headers);
+        var data = await res.json();
+        var opps = data.opportunities || [];
 
         if (!opps.length) { hasMore = false; break; }
 
-        for (const opp of opps) {
-          const created = new Date(opp.createdAt).getTime();
-          // Filtrar por período del lado cliente
-          if (created >= fromMs && created <= toMs) {
-            const cat = clasificarEtapa(opp.pipelineStage?.name, opp.status);
+        for (var oi = 0; oi < opps.length; oi++) {
+          var opp = opps[oi];
+          // GHL puede usar distintos nombres para la fecha de creación
+          var rawDate = opp.createdAt || opp.dateAdded || opp.date_added || opp.created_at || '';
+          var created = rawDate ? new Date(rawDate).getTime() : 0;
+
+          // Si no hay fecha válida o está en el período, contar
+          var inPeriod = (created === 0) || (created >= fromMs && created <= toMs);
+          if (inPeriod) {
+            var cat = clasificarEtapa(
+              opp.pipelineStage ? opp.pipelineStage.name : '',
+              opp.status
+            );
             counts[cat]++;
           }
         }
 
         startAfter += opps.length;
-        hasMore = opps.length >= 100;
-
-        // Optimización: si el lead más viejo de la página es anterior al período, parar
-        const oldest = new Date(opps[opps.length - 1].createdAt).getTime();
-        if (oldest < fromMs) { hasMore = false; }
+        hasMore = (opps.length >= 100);
 
       } catch(e) {
         pageErrors++;
-        if (pageErrors >= 3) { hasMore = false; }
+        if (pageErrors >= 3) hasMore = false;
       }
     }
 
-    rows.push({ id: pipeline.id, name: pipeline.name, ...counts });
+    rows.push({ id: pipeline.id, name: pipeline.name, entrada: counts.entrada, propuesta: counts.propuesta, cierre: counts.cierre, perdido: counts.perdido, abandonado: counts.abandonado });
   }
 
   renderTable(rows);
-  setStatus(`Actualizado ${new Date().toLocaleTimeString('es-AR')}`, true);
+  setStatus('Actualizado ' + new Date().toLocaleTimeString('es-AR'), true);
 }
 
-// ── Render tabla ─────────────────────────────────────────
 function renderTable(rows) {
-  const body = document.getElementById('tableBody');
+  var body = document.getElementById('tableBody');
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="9" class="empty-state"><p>No hay pipelines activos seleccionados</p></td></tr>`;
+    body.innerHTML = '<tr><td colspan="9" class="empty-state"><p>No hay pipelines activos seleccionados</p></td></tr>';
     document.getElementById('tableFoot').style.display = 'none';
     return;
   }
-
   body.innerHTML = '';
-  for (const row of rows) {
-    const inv = parseFloat(savedInversions[row.id]) || 0;
-    const tr  = document.createElement('tr');
-    tr.dataset.id         = row.id;
-    tr.dataset.entrada    = row.entrada;
-    tr.dataset.propuesta  = row.propuesta;
-    tr.dataset.cierre     = row.cierre;
-    tr.dataset.perdido    = row.perdido;
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var inv = parseFloat(savedInversions[row.id]) || 0;
+    var tr = document.createElement('tr');
+    tr.dataset.id = row.id;
+    tr.dataset.entrada = row.entrada;
+    tr.dataset.propuesta = row.propuesta;
+    tr.dataset.cierre = row.cierre;
+    tr.dataset.perdido = row.perdido;
     tr.dataset.abandonado = row.abandonado;
-    tr.innerHTML = `
-      <td><span class="pipeline-name">${esc(row.name)}</span></td>
-      <td class="num">
-        <input class="currency-input" data-id="${row.id}" value="${inv ? fmtNum(inv) : ''}" placeholder="$ 0" onchange="handleInvChange(this)" />
-        <span class="inv-note" id="note_${row.id}"></span>
-      </td>
-      <td class="num">${fmtNum(row.entrada)}</td>
-      <td class="num">${fmtNum(row.propuesta)}</td>
-      <td class="num"><span class="tag tag-won">${fmtNum(row.cierre)}</span></td>
-      <td class="num"><span class="tag tag-lost">${fmtNum(row.perdido)}</span></td>
-      <td class="num"><span class="tag tag-abandoned">${fmtNum(row.abandonado)}</span></td>
-      <td class="num" id="cpl_${row.id}"></td>
-      <td class="num" id="cac_${row.id}"></td>`;
+    tr.innerHTML =
+      '<td><span class="pipeline-name">' + esc(row.name) + '</span></td>' +
+      '<td class="num"><input class="currency-input" data-id="' + row.id + '" value="' + (inv ? fmtNum(inv) : '') + '" placeholder="$ 0" onchange="handleInvChange(this)" /><span class="inv-note" id="note_' + row.id + '"></span></td>' +
+      '<td class="num">' + fmtNum(row.entrada) + '</td>' +
+      '<td class="num">' + fmtNum(row.propuesta) + '</td>' +
+      '<td class="num"><span class="tag tag-won">' + fmtNum(row.cierre) + '</span></td>' +
+      '<td class="num"><span class="tag tag-lost">' + fmtNum(row.perdido) + '</span></td>' +
+      '<td class="num"><span class="tag tag-abandoned">' + fmtNum(row.abandonado) + '</span></td>' +
+      '<td class="num" id="cpl_' + row.id + '"></td>' +
+      '<td class="num" id="cac_' + row.id + '"></td>';
     body.appendChild(tr);
     updateRowCalcs(row.id);
   }
@@ -440,8 +421,8 @@ function renderTable(rows) {
 }
 
 function handleInvChange(input) {
-  const id  = input.dataset.id;
-  const num = parseFloat(input.value.replace(/[^\d]/g, '')) || 0;
+  var id = input.dataset.id;
+  var num = parseFloat(input.value.replace(/[^\d]/g, '')) || 0;
   input.value = num > 0 ? fmtNum(num) : '';
   savedInversions[id] = num > 0 ? num : '';
   persistInversions();
@@ -450,105 +431,103 @@ function handleInvChange(input) {
 }
 
 function updateRowCalcs(id) {
-  const tr = document.querySelector(`tr[data-id="${id}"]`);
+  var tr = document.querySelector('tr[data-id="' + id + '"]');
   if (!tr) return;
-  const { days, monthDays } = getPeriodDates(currentPeriod);
-  const monthlyInv = parseFloat(savedInversions[id]) || 0;
-  const periodInv  = periodInversion(monthlyInv, days, monthDays);
-  const entrada    = parseInt(tr.dataset.entrada) || 0;
-  const cierre     = parseInt(tr.dataset.cierre)  || 0;
-
-  const noteEl = document.getElementById('note_' + id);
-  if (noteEl) noteEl.textContent = (monthlyInv > 0 && days < monthDays) ? `↳ período: ${fmtCur(Math.round(periodInv))}` : '';
-
-  const cpl = (periodInv && entrada) ? periodInv / entrada : null;
-  const cac = (periodInv && cierre)  ? periodInv / cierre  : null;
-  document.getElementById('cpl_' + id).innerHTML = cpl ? `<span class="calc-value">${fmtCur(Math.round(cpl))}</span>` : `<span class="calc-na">sin inversión</span>`;
-  document.getElementById('cac_' + id).innerHTML = cac ? `<span class="calc-value">${fmtCur(Math.round(cac))}</span>` : `<span class="calc-na">sin inversión</span>`;
+  var pd = getPeriodDates(currentPeriod);
+  var monthly = parseFloat(savedInversions[id]) || 0;
+  var periodInv = periodInversion(monthly, pd.days, pd.monthDays);
+  var entrada = parseInt(tr.dataset.entrada) || 0;
+  var cierre = parseInt(tr.dataset.cierre) || 0;
+  var noteEl = document.getElementById('note_' + id);
+  if (noteEl) noteEl.textContent = (monthly > 0 && pd.days < pd.monthDays) ? ('↳ período: ' + fmtCur(Math.round(periodInv))) : '';
+  var cpl = (periodInv && entrada) ? periodInv / entrada : null;
+  var cac = (periodInv && cierre) ? periodInv / cierre : null;
+  document.getElementById('cpl_' + id).innerHTML = cpl ? '<span class="calc-value">' + fmtCur(Math.round(cpl)) + '</span>' : '<span class="calc-na">sin inversión</span>';
+  document.getElementById('cac_' + id).innerHTML = cac ? '<span class="calc-value">' + fmtCur(Math.round(cac)) + '</span>' : '<span class="calc-na">sin inversión</span>';
 }
 
 function recalcAll() {
-  let totInv=0, totE=0, totP=0, totC=0, totL=0, totA=0;
-  const { days, monthDays } = getPeriodDates(currentPeriod);
-  document.querySelectorAll('tbody tr[data-id]').forEach(tr => {
-    const id = tr.dataset.id;
-    totInv += periodInversion(parseFloat(savedInversions[id]) || 0, days, monthDays);
-    totE   += parseInt(tr.dataset.entrada)    || 0;
-    totP   += parseInt(tr.dataset.propuesta)  || 0;
-    totC   += parseInt(tr.dataset.cierre)     || 0;
-    totL   += parseInt(tr.dataset.perdido)    || 0;
-    totA   += parseInt(tr.dataset.abandonado) || 0;
+  var totInv=0, totE=0, totP=0, totC=0, totL=0, totA=0;
+  var pd = getPeriodDates(currentPeriod);
+  document.querySelectorAll('tbody tr[data-id]').forEach(function(tr) {
+    var id = tr.dataset.id;
+    totInv += periodInversion(parseFloat(savedInversions[id]) || 0, pd.days, pd.monthDays);
+    totE += parseInt(tr.dataset.entrada) || 0;
+    totP += parseInt(tr.dataset.propuesta) || 0;
+    totC += parseInt(tr.dataset.cierre) || 0;
+    totL += parseInt(tr.dataset.perdido) || 0;
+    totA += parseInt(tr.dataset.abandonado) || 0;
   });
-  document.getElementById('totInvCell').innerHTML   = totInv ? `<strong>${fmtCur(Math.round(totInv))}</strong>` : '—';
-  document.getElementById('totEntrada').textContent  = fmtNum(totE);
-  document.getElementById('totPropuesta').textContent= fmtNum(totP);
-  document.getElementById('totCierre').innerHTML     = `<strong>${fmtNum(totC)}</strong>`;
-  document.getElementById('totPerdido').textContent  = fmtNum(totL);
-  document.getElementById('totAbandonado').textContent= fmtNum(totA);
-  const totCPL = (totInv && totE) ? totInv / totE : null;
-  const totCAC = (totInv && totC) ? totInv / totC : null;
-  document.getElementById('totCPL').innerHTML = totCPL ? `<strong>${fmtCur(Math.round(totCPL))}</strong>` : '—';
-  document.getElementById('totCAC').innerHTML = totCAC ? `<strong>${fmtCur(Math.round(totCAC))}</strong>` : '—';
+  document.getElementById('totInvCell').innerHTML = totInv ? '<strong>' + fmtCur(Math.round(totInv)) + '</strong>' : '—';
+  document.getElementById('totEntrada').textContent = fmtNum(totE);
+  document.getElementById('totPropuesta').textContent = fmtNum(totP);
+  document.getElementById('totCierre').innerHTML = '<strong>' + fmtNum(totC) + '</strong>';
+  document.getElementById('totPerdido').textContent = fmtNum(totL);
+  document.getElementById('totAbandonado').textContent = fmtNum(totA);
+  var totCPL = (totInv && totE) ? totInv / totE : null;
+  var totCAC = (totInv && totC) ? totInv / totC : null;
+  document.getElementById('totCPL').innerHTML = totCPL ? '<strong>' + fmtCur(Math.round(totCPL)) + '</strong>' : '—';
+  document.getElementById('totCAC').innerHTML = totCAC ? '<strong>' + fmtCur(Math.round(totCAC)) + '</strong>' : '—';
 }
 
-// ── Chips pipelines ──────────────────────────────────────
 function renderChips() {
-  const wrap = document.getElementById('pipelineSelector');
-  const cont = document.getElementById('pipelineChips');
+  var wrap = document.getElementById('pipelineSelector');
+  var cont = document.getElementById('pipelineChips');
   if (!pipelinesData.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = 'block';
   cont.innerHTML = '';
-  for (const p of pipelinesData) {
-    const chip = document.createElement('div');
-    chip.className = 'pipeline-chip' + (activePipelineIds.has(p.id) ? ' active' : '');
-    chip.dataset.id  = p.id;
-    chip.textContent = p.name;
-    chip.onclick = () => {
-      if (activePipelineIds.has(p.id)) activePipelineIds.delete(p.id);
-      else activePipelineIds.add(p.id);
-      document.querySelectorAll('.pipeline-chip').forEach(c => c.classList.toggle('active', activePipelineIds.has(c.dataset.id)));
-      loadData();
-    };
-    cont.appendChild(chip);
+  for (var i = 0; i < pipelinesData.length; i++) {
+    (function(p) {
+      var chip = document.createElement('div');
+      chip.className = 'pipeline-chip' + (activePipelineIds.has(p.id) ? ' active' : '');
+      chip.dataset.id = p.id;
+      chip.textContent = p.name;
+      chip.onclick = function() {
+        if (activePipelineIds.has(p.id)) activePipelineIds.delete(p.id);
+        else activePipelineIds.add(p.id);
+        document.querySelectorAll('.pipeline-chip').forEach(function(c){ c.classList.toggle('active', activePipelineIds.has(c.dataset.id)); });
+        loadData();
+      };
+      cont.appendChild(chip);
+    })(pipelinesData[i]);
   }
 }
 
-// ── Demo ─────────────────────────────────────────────────
 function loadDemoData() {
   document.getElementById('demoBadge').style.display = 'inline-block';
   setStatus('Datos demo', true);
   document.getElementById('pipelineSelector').style.display = 'none';
-  const demo = [
-    { id:'meta',   name:'Meta',    entrada:142, propuesta:38, cierre:12, perdido:18, abandonado:8 },
-    { id:'otros',  name:'Otros',   entrada:67,  propuesta:21, cierre:8,  perdido:9,  abandonado:4 },
-    { id:'zaask',  name:'Zaask',   entrada:98,  propuesta:29, cierre:9,  perdido:14, abandonado:6 },
-    { id:'web180', name:'Web 180', entrada:54,  propuesta:16, cierre:5,  perdido:7,  abandonado:4 },
-    { id:'doiser', name:'Doiser',  entrada:31,  propuesta:9,  cierre:3,  perdido:4,  abandonado:2 },
+  var demo = [
+    { id:'meta', name:'Meta', entrada:142, propuesta:38, cierre:12, perdido:18, abandonado:8 },
+    { id:'otros', name:'Otros', entrada:67, propuesta:21, cierre:8, perdido:9, abandonado:4 },
+    { id:'zaask', name:'Zaask', entrada:98, propuesta:29, cierre:9, perdido:14, abandonado:6 },
+    { id:'web180', name:'Web 180', entrada:54, propuesta:16, cierre:5, perdido:7, abandonado:4 },
+    { id:'doiser', name:'Doiser', entrada:31, propuesta:9, cierre:3, perdido:4, abandonado:2 }
   ];
   if (!savedInversions['meta']) savedInversions = { meta:150000, otros:0, zaask:120000, web180:35000, doiser:80000 };
   renderTable(demo);
 }
 
-// ── Misc ─────────────────────────────────────────────────
 function showTableLoading() {
-  document.getElementById('tableBody').innerHTML = `<tr class="loading-row"><td colspan="9"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" style="animation:spin 1s linear infinite;vertical-align:middle;margin-right:6px;"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>Cargando datos de GHL...</td></tr>`;
+  document.getElementById('tableBody').innerHTML = '<tr class="loading-row"><td colspan="9">Cargando datos de GHL...</td></tr>';
   document.getElementById('tableFoot').style.display = 'none';
 }
+
 function showError(msg) {
-  const el = document.getElementById('errorBanner');
+  var el = document.getElementById('errorBanner');
   el.textContent = '⚠ ' + msg;
   el.style.display = 'block';
-  setTimeout(() => el.style.display = 'none', 10000);
-}
-function setStatus(msg, done) {
-  document.getElementById('statusArea').innerHTML = done
-    ? `<span class="status-dot"></span>${msg}`
-    : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" style="animation:spin 1s linear infinite;margin-right:4px;vertical-align:middle;"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>${msg}`;
+  setTimeout(function(){ el.style.display = 'none'; }, 10000);
 }
 
-// ── Init ─────────────────────────────────────────────────
+function setStatus(msg, done) {
+  document.getElementById('statusArea').innerHTML = done
+    ? '<span class="status-dot"></span>' + msg
+    : msg;
+}
+
 loadSaved();
-const initDates = getPeriodDates('month');
+var initDates = getPeriodDates('month');
 document.getElementById('periodLabel').textContent = fmtPeriodLabel(initDates);
 loadDemoData();
 </script>
