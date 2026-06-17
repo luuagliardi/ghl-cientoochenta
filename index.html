@@ -333,6 +333,9 @@ async function loadData() {
 
   var headers = { 'Authorization': 'Bearer ' + apiKey, 'Version': '2021-07-28', 'Accept': 'application/json' };
 
+  // DEBUG: muestra las claves del primer lead en consola (borrar después)
+  var debugDone = false;
+
   async function fetchPipeline(pipeline) {
     var counts = { entrada:0, propuesta:0, cierre:0, perdido:0, abandonado:0 };
     var startAfter = 0, hasMore = true, pageErrors = 0;
@@ -343,6 +346,22 @@ async function loadData() {
         var data = await res.json();
         var opps = data.opportunities || [];
         if (!opps.length) { hasMore = false; break; }
+
+        // DEBUG: loguear el primer lead una sola vez
+        if (!debugDone && opps.length > 0) {
+          debugDone = true;
+          var sample = opps[0];
+          var dateFields = {};
+          Object.keys(sample).forEach(function(k) {
+            if (k.toLowerCase().indexOf('date') !== -1 || k.toLowerCase().indexOf('creat') !== -1 || k.toLowerCase().indexOf('add') !== -1) {
+              dateFields[k] = sample[k];
+            }
+          });
+          console.log('=== GHL LEAD DATE FIELDS ===', JSON.stringify(dateFields, null, 2));
+          console.log('=== FULL LEAD KEYS ===', Object.keys(sample).join(', '));
+          setStatus('DEBUG: ver consola del browser (F12)', true);
+        }
+
         for (var oi = 0; oi < opps.length; oi++) {
           var opp = opps[oi];
           var rawDate = opp.createdAt || opp.dateAdded || opp.date_added || opp.created_at || '';
